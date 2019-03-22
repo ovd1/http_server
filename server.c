@@ -11,6 +11,17 @@
 #include <fcntl.h>
 
 
+
+#define ERROR_404_PAGE "error_page.html"
+
+static const char response_header_200Ok[] = "HTTP/1.1 200 OK\r\n"
+"Content-Type: text/html; charset=UTF-8\r\n\r\n";
+
+static const char resp_404[] = "HTTP/1.1 404 Not Found\r\n"
+"Server: Apache/2.2.14 (Win32)\r\n"
+"Connection: close\r\n"
+"Content-Type: text/html; charset=UTF-8\r\n\r\n";
+
 int startServer(const char * host, int port) {
     int sock;
     struct sockaddr_in addr;
@@ -92,17 +103,6 @@ const char *parse_http_request(char *buf, int sockfd){
 }
 
 
-static const char response_header_200Ok[] = "HTTP/1.1 200 OK\r\n"
-"Content-Type: text/html; charset=UTF-8\r\n\r\n";
-
-static const char resp_404[] = "HTTP/1.1 404 Not Found\r\n"
-"Server: Apache/2.2.14 (Win32)\r\n"
-"Content-Length: 230\r\n"
-"Connection: close\r\n"
-"Content-Type: text/html; charset=UTF-8\r\n\r\n"
-"<!DOCTYPE html><html><head><title>404 Not Found</title></head>"
-"<body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>\r\n";
-
 int main()
 {
     int sockfd, comp, port; 
@@ -113,7 +113,7 @@ int main()
  
     while (1){
         const char *page_name_begin;
-        int open_file, bytes_read;  
+        int open_file, bytes_read, err_file;  
         int sock2 = accept(sockfd, NULL, NULL);
         
         if (sock2 < 0) {
@@ -133,7 +133,12 @@ int main()
                 write(sock2, buf, bytes_read);
                 write(sock2, "\r\n", sizeof("\r\n")-1);
             } else {
+                err_file = open(ERROR_404_PAGE, 0, O_RDONLY);
                 write(sock2, resp_404, sizeof(resp_404)-1);
+                bytes_read = read(err_file, buf, sizeof(buf));
+                
+                write(sock2, buf, bytes_read);
+                write(sock2, "\r\n", sizeof("\r\n")-1);
             }
         } else {
             //TODO: 401 response

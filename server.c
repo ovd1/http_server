@@ -12,12 +12,20 @@
 
 
 
-#define ERROR_404_PAGE "error_page.html"
+#define ERROR_404 "html_doc/error_404.html"
+#define ERROR_400 "html_doc/error_401.html"
+
+#define MY_PRINTF(a, b) printf("a %s\n", b) 
 
 static const char response_header_200Ok[] = "HTTP/1.1 200 OK\r\n"
 "Content-Type: text/html; charset=UTF-8\r\n\r\n";
 
 static const char resp_404[] = "HTTP/1.1 404 Not Found\r\n"
+"Server: Apache/2.2.14 (Win32)\r\n"
+"Connection: close\r\n"
+"Content-Type: text/html; charset=UTF-8\r\n\r\n";
+
+static const char resp_400[] = "HTTP/1.1 400 Bad Request\r\n"
 "Server: Apache/2.2.14 (Win32)\r\n"
 "Connection: close\r\n"
 "Content-Type: text/html; charset=UTF-8\r\n\r\n";
@@ -62,9 +70,7 @@ static char* find_page(char *p, size_t size){
     while (size-- != 0 && *(p++) != ' ');
     if (*(p - 1) == ' '){
         return (p - 1);
-    }
-    else
-    {
+    } else {
         return NULL;
     }
     
@@ -121,7 +127,8 @@ int main()
         }
         
         page_name_begin = parse_http_request(buf, sock2);
-        printf("resuk %s\n", page_name_begin);
+        //printf("result %s\n", page_name_begin);
+        MY_PRINTF("result", page_name_begin); 
         
         if (page_name_begin) {
             open_file = open(page_name_begin+1, 0, O_RDONLY);
@@ -133,7 +140,7 @@ int main()
                 write(sock2, buf, bytes_read);
                 write(sock2, "\r\n", sizeof("\r\n")-1);
             } else {
-                err_file = open(ERROR_404_PAGE, 0, O_RDONLY);
+                err_file = open(ERROR_404, 0, O_RDONLY);
                 write(sock2, resp_404, sizeof(resp_404)-1);
                 bytes_read = read(err_file, buf, sizeof(buf));
                 
@@ -142,6 +149,12 @@ int main()
             }
         } else {
             //TODO: 401 response
+            err_file = open(ERROR_400, 0, O_RDONLY);
+            write(sock2, resp_400, sizeof(resp_400)-1);
+            bytes_read = read(err_file, buf, sizeof(buf));
+                
+            write(sock2, buf, bytes_read);
+            write(sock2, "\r\n", sizeof("\r\n")-1);
         }
         
         close(sock2);
@@ -151,5 +164,3 @@ int main()
     close(sockfd);
     return 0;
 }
-
-
